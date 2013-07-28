@@ -1,0 +1,4 @@
+eazyphotod
+==========
+
+Daemon for EazyPhoto
