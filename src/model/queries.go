@@ -152,8 +152,8 @@ func AlbumMeta(id int) (MetaInfo, error) {
 		}
 
 		m.PhotoIds = strings.Split(ids, ",")
-		if len(m.PhotoIds) > 5 {
-			m.PhotoIds = m.PhotoIds[0:5]
+		if len(m.PhotoIds) > 6 {
+			m.PhotoIds = m.PhotoIds[0:6]
 		}
 	}
 
