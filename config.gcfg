@@ -1,0 +1,24 @@
+[Photos]
+Root    = d:/Documents/Projects/PHP/EazyPhoto/web/shared/files/albums
+Source  = source
+Hd      = hd
+Thumbs  = thumbs
+
+[BTSync]
+Host        = 127.0.0.1
+Port        = 8888
+User        = admin
+Password    = 123456
+
+[Database]
+ConnectionString = root:root@/eazyphoto?parseTime=true
+
+[Image]
+MaxWidth        = 1920	# px
+MaxHeight       = 1920	# px
+ThumbWidth      = 200	# px
+ThumbHeight     = 200	# px
+
+[Server]
+Host =  		# listen *
+Port = 8889
