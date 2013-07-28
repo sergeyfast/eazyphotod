@@ -1,16 +1,16 @@
 package main
 
 import (
+	"github.com/disintegration/imaging"
 	"github.com/rwcarlsen/goexif/exif"
-    "github.com/disintegration/imaging"
-    "io/ioutil"
+	"image"
+	"io/ioutil"
+	"log"
 	"model"
 	"os"
+	"path/filepath"
 	"strings"
-    "image"
-    "log"
-    "path/filepath"
-    "time"
+	"time"
 )
 
 // exists returns whether the given file or directory exists or not
@@ -33,7 +33,7 @@ func ReadExif(filename string) (x *exif.Exif, json string, err error) {
 	if err != nil {
 		return
 	}
-    defer f.Close()
+	defer f.Close()
 
 	x, err = exif.Decode(f)
 	if err != nil {
@@ -46,29 +46,27 @@ func ReadExif(filename string) (x *exif.Exif, json string, err error) {
 	return
 }
 
-func WatchDir( dir string ) error {
-    if err := Watcher.Watch(dir); err != nil {
-        return err
-    }
+func WatchDir(dir string) error {
+	if err := Watcher.Watch(dir); err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }
 
+func ReadPhoto(filename string) (*model.Photo, error) {
+	f, err := os.Stat(filename)
+	if err != nil {
+		return nil, err
+	}
 
-func ReadPhoto( filename string  ) (*model.Photo, error) {
-    f, err := os.Stat( filename )
-    if err != nil {
-        return nil, err
-    }
+	p := &model.Photo{
+		OriginalName: f.Name(),
+		FileSize:     int(f.Size()),
+	}
 
-    p := &model.Photo{
-        OriginalName: f.Name(),
-        FileSize: int(f.Size()),
-    }
-
-    return p, nil
+	return p, nil
 }
-
 
 // Get All .jpg Files from Directory
 func ReadPhotos(dir string) (result model.PhotoList, err error) {
@@ -78,13 +76,13 @@ func ReadPhotos(dir string) (result model.PhotoList, err error) {
 	}
 
 	for _, f := range files {
-		if !checkJpgExt( f.Name() ) {
+		if !checkJpgExt(f.Name()) {
 			continue
 		}
 
 		p := model.Photo{
 			OriginalName: f.Name(),
-			FileSize: int(f.Size()),
+			FileSize:     int(f.Size()),
 		}
 
 		result = append(result, &p)
@@ -94,51 +92,49 @@ func ReadPhotos(dir string) (result model.PhotoList, err error) {
 }
 
 // Rewrite Image to disk
-func rewriteImage( dst *image.NRGBA, filename string ) (int, error) {
-    if r, _ := Exists( filename ); r  {
-        os.Remove( filename )
-    }
+func rewriteImage(dst *image.NRGBA, filename string) (int, error) {
+	if r, _ := Exists(filename); r {
+		os.Remove(filename)
+	}
 
-    // save the image to file
-    if err := imaging.Save(dst, filename); err != nil {
-        return 0, err
-    }
+	// save the image to file
+	if err := imaging.Save(dst, filename); err != nil {
+		return 0, err
+	}
 
-    f, err := os.Stat( filename )
-    if err != nil {
-        return 0, err
-    }
+	f, err := os.Stat(filename)
+	if err != nil {
+		return 0, err
+	}
 
-    return int(f.Size()), err
+	return int(f.Size()), err
 }
-
 
 func WatcherLoop() {
-    log.Println( "Starting watcher loop.")
-    for {
-        select {
-        case ev := <-Watcher.Event:
-            if ev.IsCreate() || ev.IsRename() {
-                time.Sleep( time.Second ) // we need this sleep because will be another events after CREATE
-                si := &SyncItem{
-                    Filename: ev.Name,
-                }
+	log.Println("Starting watcher loop.")
+	for {
+		select {
+		case ev := <-Watcher.Event:
+			if ev.IsCreate() || ev.IsRename() {
+				time.Sleep(time.Second) // we need this sleep because will be another events after CREATE
+				si := &SyncItem{
+					Filename: ev.Name,
+				}
 
-                si.GoSync()
-            }
-        case err := <-Watcher.Error:
-            log.Println( err )
-        }
-    }
+				si.GoSync()
+			}
+		case err := <-Watcher.Error:
+			log.Println(err)
+		}
+	}
 }
 
-
 // Checks if filename has .jpg or .JPG extension
-func checkJpgExt( filename string ) bool {
-    return strings.ToLower( filepath.Ext( filename ) ) == ".jpg"
+func checkJpgExt(filename string) bool {
+	return strings.ToLower(filepath.Ext(filename)) == ".jpg"
 }
 
 // Replace \ to / and add trailing /
-func baseDir( filename string ) string {
-    return filepath.Clean( filepath.Dir( filename ) )
+func baseDir(filename string) string {
+	return filepath.Clean(filepath.Dir(filename))
 }

@@ -7,8 +7,8 @@ import (
 	"image"
 	"log"
 	"model"
+	"strconv"
 	"time"
-    "strconv"
 )
 
 var (
@@ -56,13 +56,13 @@ func RunFsSync(albums model.AlbumList) {
 	log.Println("FsSync started.")
 	for _, a := range albums {
 		if r, err := a.CreateDirs(); !r || err != nil {
-            log.Println( "a.CreateDirs() failed")
-            logFatal( err )
-        }
+			log.Println("a.CreateDirs() failed")
+			logFatal(err)
+		}
 
-        if err := WatchDir( a.PathSource() ); err != nil {
-            log.Println( err )
-        }
+		if err := WatchDir(a.PathSource()); err != nil {
+			log.Println(err)
+		}
 
 		si, _ := NewFsSyncItem(a)
 		si.GoSync()
@@ -230,20 +230,20 @@ func Dispatch() {
 			}
 		case ai := <-AlbumQueue:
 			switch {
-            case ai.MetaUpdate:
-                log.Println( "Updating Album meta")
+			case ai.MetaUpdate:
+				log.Println("Updating Album meta")
 				if err = updateMeta(ai.AlbumId); err != nil {
 					log.Println(err)
 				} else {
-                    log.Println( "Metainfo was updated for albumId", ai.AlbumId)
-                }
-            case ai.StatusUpdate:
-                log.Println( "Reloading albums")
-                if err = updateAlbums(); err != nil {
-                    log.Println(err)
-                } else {
-                    log.Println( "Albums were reloaded")
-                }
+					log.Println("Metainfo was updated for albumId", ai.AlbumId)
+				}
+			case ai.StatusUpdate:
+				log.Println("Reloading albums")
+				if err = updateAlbums(); err != nil {
+					log.Println(err)
+				} else {
+					log.Println("Albums were reloaded")
+				}
 			}
 		}
 	}
@@ -254,7 +254,7 @@ func Dispatch() {
 func updateMeta(albumId int) error {
 	a, ok := Albums[albumId]
 	if !ok {
-		return errors.New("Unknown AlbumId for meta update: " + strconv.Itoa(albumId) )
+		return errors.New("Unknown AlbumId for meta update: " + strconv.Itoa(albumId))
 	}
 
 	var err error
@@ -267,46 +267,44 @@ func updateMeta(albumId int) error {
 	return nil
 }
 
-
 // Reload New Albums
 func updateAlbums() error {
-    albums, err := model.Albums()
-    if err != nil {
-        return err
-    }
+	albums, err := model.Albums()
+	if err != nil {
+		return err
+	}
 
+	// Filter New albums
+	newAlbums := make(model.AlbumList)
+	for _, a := range albums {
+		if a.StatusId == model.StatusInQueue {
+			newAlbums[a.AlbumId] = a
+		}
+	}
 
-    // Filter New albums
-    newAlbums := make(model.AlbumList)
-    for _, a := range albums {
-        if a.StatusId == model.StatusInQueue {
-            newAlbums[a.AlbumId] = a
-        }
-    }
+	if len(newAlbums) == 0 {
+		return nil
+	}
 
-    if len(newAlbums) == 0 {
-        return nil
-    }
+	// Queue Albums
+	if wds, err := model.PushToBtSync(newAlbums, bstClient); err != nil {
+		return err
+	} else {
+		for _, d := range wds {
+			if err = WatchDir(d); err != nil {
+				return err
+			}
+		}
+	}
 
-    // Queue Albums
-    if wds, err := model.PushToBtSync( newAlbums, bstClient ); err != nil {
-        return err
-    } else {
-        for _, d := range wds {
-            if err = WatchDir( d ); err != nil {
-                return err
-            }
-        }
-    }
+	// Update Albums Storage
+	for _, a := range newAlbums {
+		if curAl, ok := Albums[a.AlbumId]; ok {
+			a.Photos = curAl.Photos
+		}
 
-    // Update Albums Storage
-    for _, a := range newAlbums {
-        if curAl, ok := Albums[a.AlbumId]; ok {
-            a.Photos = curAl.Photos
-        }
+		Albums[a.AlbumId] = a
+	}
 
-        Albums[a.AlbumId] = a
-    }
-
-    return nil
+	return nil
 }

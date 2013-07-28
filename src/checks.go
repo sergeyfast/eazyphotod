@@ -1,10 +1,10 @@
 package main
 
 import (
-    "github.com/sergeyfast/btsync-cli/src/btsync"
-    "github.com/howeyc/fsnotify"
-    "errors"
-    "fmt"
+	"errors"
+	"fmt"
+	"github.com/howeyc/fsnotify"
+	"github.com/sergeyfast/btsync-cli/src/btsync"
 	"log"
 	"model"
 )
@@ -35,12 +35,11 @@ func setRootDir() {
 	model.Thumbs = cfg.Photos.Thumbs
 	model.HD = cfg.Photos.HD
 
-
-    var err error
-    Watcher, err = fsnotify.NewWatcher()
-    if err != nil {
-        logFatal(err)
-    }
+	var err error
+	Watcher, err = fsnotify.NewWatcher()
+	if err != nil {
+		logFatal(err)
+	}
 }
 
 func pingBtSync() error {
