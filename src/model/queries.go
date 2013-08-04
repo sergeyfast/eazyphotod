@@ -135,7 +135,8 @@ func AddPhotos(photos PhotoList) error {
 func AlbumMeta(id int) (MetaInfo, error) {
 	var m MetaInfo
 	sql := "SELECT sum(`fileSize`) as fs, sum(`fileSizeHd`) as fh, " +
-		"  count( case when `statusId` = 1 then `photoId` else null end ) as total, GROUP_CONCAT(`photoId` ORDER BY `orderNumber`, `photoDate` ) as ids " +
+		"  count( case when `statusId` = 1 then `photoId` else null end ) as total, " +
+        " GROUP_CONCAT( CASE WHEN statusId = 1 then `photoId` ELSE null END ORDER BY `orderNumber`, `photoDate` ) as ids " +
 		" FROM `photos` p " +
 		" WHERE `albumId` = ?"
 
@@ -144,7 +145,7 @@ func AlbumMeta(id int) (MetaInfo, error) {
 		return m, err
 	}
 
-	if ds.Next() {
+    if ds.Next() {
 		var ids string
 		err = ds.Scan(&m.Size, &m.SizeHD, &m.Count, &ids)
 		if err != nil {
