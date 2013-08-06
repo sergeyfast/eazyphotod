@@ -12,6 +12,8 @@ var (
 	db               *sql.DB
 )
 
+const maxIdleConnections = 5;
+
 func DB() *sql.DB {
 	return db
 }
@@ -22,6 +24,7 @@ func Open() (err error) {
 	if err != nil {
 		return err
 	}
+    db.SetMaxIdleConns( maxIdleConnections )
 	return db.Ping()
 }
 
