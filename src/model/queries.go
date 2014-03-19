@@ -3,8 +3,8 @@ package model
 import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
-	"log"
 	"strings"
+	"github.com/golang/glog"
 )
 
 var (
@@ -49,7 +49,7 @@ func Albums() (result AlbumList, err error) {
 		var a Album
 		err := rows.Scan(&a.AlbumId, &a.Alias, &a.FolderPath, &a.ROSecret, &a.ROSecretHD, &a.StartDate, &a.StatusId)
 		if err != nil {
-			log.Println(err)
+			glog.Warningln(err)
 			continue
 		}
 
@@ -75,7 +75,7 @@ func Photos() (result PhotoList, err error) {
 		var p Photo
 		err := rows.Scan(&p.PhotoId, &p.AlbumId, &p.OriginalName, &p.Filename, &p.StatusId)
 		if err != nil {
-			log.Println(err)
+			glog.Warningln(err)
 			continue
 		}
 

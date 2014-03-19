@@ -3,7 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
-	"github.com/sergeyfast/btsync-cli/src/btsync"
+	"github.com/sergeyfast/btsync"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -49,14 +49,13 @@ func PushToBtSync(albums AlbumList, client *btsync.Client) ([]string, error) {
 		}
 
 		// Generate Secret
-		var s btsync.Secret
-		if s, err = client.GenerateSecret(); err != nil {
+		var s *btsync.Secrets
+		if s, err = client.Secrets("",false); err != nil {
 			return watchDirs, err
 		}
 
 		// Add Sources
-		if r := client.AddSyncFolder(a.PathSource(), a.ROSecret); r.Err != nil || r.Error != 0 {
-			err := r.Err
+		if r, err := client.AddFolder(a.PathSource(), a.ROSecret, 0 ); err != nil || r.Error != 0 || r.Result != 0 {
 			if err == nil {
 				err = errors.New("Failed to add source sync folder. Error code: " + strconv.Itoa(r.Error) + ". " + r.Message)
 			}
@@ -67,9 +66,8 @@ func PushToBtSync(albums AlbumList, client *btsync.Client) ([]string, error) {
 		}
 
 		// Add HD
-		a.ROSecretHD = s.ROSecret
-		if r := client.AddSyncFolder(a.PathHD(), s.Secret); r.Err != nil || r.Error != 0 {
-			err := r.Err
+		a.ROSecretHD = s.ReadOnly
+		if r, err := client.AddFolder(a.PathHD(), s.ReadWrite, 0 ); err != nil || r.Error != 0 || r.Result != 0 {
 			if err == nil {
 				err = errors.New("Failed to add hd sync folder. Error code: " + strconv.Itoa(r.Error) + ". " + r.Message)
 			}

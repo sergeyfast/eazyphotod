@@ -1,16 +1,15 @@
-package main
+package eazyphotod
 
 import (
 	"github.com/disintegration/imaging"
 	"github.com/rwcarlsen/goexif/exif"
 	"image"
 	"io/ioutil"
-	"log"
 	"model"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
+	"github.com/golang/glog"
 )
 
 // exists returns whether the given file or directory exists or not
@@ -111,20 +110,21 @@ func rewriteImage(dst *image.NRGBA, filename string) (int, error) {
 }
 
 func WatcherLoop() {
-	log.Println("Starting watcher loop.")
+	glog.Infoln("Starting watcher loop.")
 	for {
 		select {
 		case ev := <-Watcher.Event:
 			if ev.IsCreate() || ev.IsRename() {
-				time.Sleep(time.Second) // we need this sleep because will be another events after CREATE
-				si := &SyncItem{
-					Filename: ev.Name,
+				//glog.Infoln( "S "+ ev.Name )
+				//time.Sleep(time.Second) // we need this sleep because will be another events after CREATE
+				if checkJpgExt( ev.Name ) {
+					si := &SyncItem{Filename: ev.Name}
+					si.GoSync()
 				}
-
-				si.GoSync()
+				//glog.Infoln( "F "+ ev.Name )
 			}
 		case err := <-Watcher.Error:
-			log.Println(err)
+			glog.Infoln(err)
 		}
 	}
 }

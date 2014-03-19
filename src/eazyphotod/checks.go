@@ -1,12 +1,12 @@
-package main
+package eazyphotod
 
 import (
 	"errors"
 	"fmt"
 	"github.com/howeyc/fsnotify"
-	"github.com/sergeyfast/btsync-cli/src/btsync"
-	"log"
+	"github.com/sergeyfast/btsync"
 	"model"
+	"github.com/golang/glog"
 )
 
 func pingModel() error {
@@ -17,17 +17,17 @@ func pingModel() error {
 // Log Fatal
 func logFatal(err error) {
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 }
 
 func setRootDir() {
 	if ok, err := Exists(cfg.Photos.Root); !ok {
 		if err != nil {
-			log.Print(err)
+			glog.Info(err)
 		}
 
-		log.Fatalf("Directory %s doen't exists", cfg.Photos.Root)
+		glog.Fatalf("Directory %s doen't exists", cfg.Photos.Root)
 	}
 
 	model.AlbumsRoot = cfg.Photos.Root
@@ -44,8 +44,8 @@ func setRootDir() {
 
 func pingBtSync() error {
 	bstClient = btsync.NewClient(cfg.BTSync.Host, cfg.BTSync.Port, cfg.BTSync.User, cfg.BTSync.Password)
-	if !bstClient.RequestToken() {
-		return errors.New("Invalid Credentials for BTSync")
+	if _, err := bstClient.Version(); err != nil {
+		return errors.New("Cannot get btsync version.")
 	}
 
 	return nil

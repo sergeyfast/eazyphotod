@@ -1,19 +1,21 @@
-package main
+package eazyphotod
 
 import (
-	"errors"
-	"github.com/disintegration/imaging"
-	"github.com/howeyc/fsnotify"
-	"image"
-	"log"
 	"model"
+
+	"errors"
+	"image"
 	"strconv"
 	"time"
+	"github.com/disintegration/imaging"
+	"github.com/howeyc/fsnotify"
+	"github.com/golang/glog"
 )
 
 var (
-	SyncQueue  = make(chan *SyncItem)      // Main Sync Queue Chan
-	AlbumQueue = make(chan *AlbumItem, 50) // Status or Meta update for Album
+	SyncQueue     = make(chan *SyncItem)      // Main Sync Queue Chan
+	FsBufferQueue = make(chan *SyncItem, 100 )      // Fs Buffer Queue.
+	AlbumQueue    = make(chan *AlbumItem, 100 ) // Status or Meta update for Album
 	Watcher    *fsnotify.Watcher
 )
 
@@ -34,7 +36,7 @@ type SyncItem struct {
 
 // Send self to SyncQueue
 func (si *SyncItem) GoSync() {
-	SyncQueue <- si
+	FsBufferQueue <- si
 }
 
 // Creates New Fs Sync Item
@@ -53,30 +55,30 @@ func NewFsSyncItem(a *model.Album) (si *SyncItem, err error) {
 
 // Run Full sync from filesystem for all albums
 func RunFsSync(albums model.AlbumList) {
-	log.Println("FsSync started.")
+	glog.Infoln("FsSync started.")
 	for _, a := range albums {
 		if r, err := a.CreateDirs(); !r || err != nil {
-			log.Println("a.CreateDirs() failed")
+			glog.Infoln("a.CreateDirs() failed")
 			logFatal(err)
 		}
 
 		if err := WatchDir(a.PathSource()); err != nil {
-			log.Println(err)
+			glog.Errorln(err)
 		}
 
 		si, _ := NewFsSyncItem(a)
 		si.GoSync()
 	}
-	log.Println("FsSync finished.")
+	glog.Infoln("FsSync finished.")
 }
 
 // Sync Album with photos.
 // Can be partial or full
 func syncAlbum(si *SyncItem) {
 	if si.FullSync {
-		log.Printf("Going full fs sync for album %s\n", si.Album.Alias)
+		glog.Infof("Going full fs sync for album %s\n", si.Album.Alias)
 	} else {
-		log.Printf("Going partial sync for album %s\n", si.Album.Alias)
+		glog.Infof("Going partial sync for album %s\n", si.Album.Alias)
 	}
 
 	index := make(map[string]*model.Photo)
@@ -98,10 +100,10 @@ func syncAlbum(si *SyncItem) {
 	for _, p := range si.FsPhotos {
 		_, ok := index[p.OriginalName]
 		if !ok {
-			log.Println("Found new photo " + p.OriginalName)
+			glog.Infoln("Found new photo " + p.OriginalName)
 			FillPhoto(si.Album, p, nextId)
 			if err := CreatePhotos(si.Album, p); err != nil {
-				log.Println(err)
+				glog.Errorln(err)
 				continue
 			}
 
@@ -115,29 +117,29 @@ func syncAlbum(si *SyncItem) {
 	if len(newPhotos) > 0 {
 		tx, err := model.DB().Begin()
 		if err != nil {
-			log.Println(err)
+			glog.Errorln(err)
 		}
 		if err := model.AddPhotos(newPhotos); err != nil {
-			log.Println(err)
+			glog.Errorln(err)
 			if err = tx.Rollback(); err != nil {
-				log.Println(err)
+				glog.Errorln(err)
 			}
 		} else {
 			// Update Meta
 			if si.Album.MetaInfo, err = model.AlbumMeta(si.Album.AlbumId); err != nil {
-				log.Println(err)
+				glog.Errorln(err)
 			} else if err := model.UpdateMeta(si.Album); err != nil {
-				log.Println(err)
+				glog.Errorln(err)
 			}
 
 			// Commit transaction
 			if err = tx.Commit(); err != nil {
-				log.Println(err)
+				glog.Errorln(err)
 			}
 		}
 	}
 
-	log.Printf("Sync Done. %d new, %d exists\n", len(newPhotos), exists)
+	glog.Infof("Sync Done. %d new, %d exists\n", len(newPhotos), exists)
 }
 
 func NewSyncItemPhoto(filename string) (*SyncItem, error) {
@@ -196,7 +198,7 @@ func CreatePhotos(a *model.Album, p *model.Photo) (err error) {
 
 	var dst *image.NRGBA
 	filename := a.PathHD() + p.Filename
-	log.Printf("Saving HD: %s\n", filename)
+	glog.Infof("Saving HD: %s\n", filename)
 	dst = imaging.Fit(src, cfg.Image.MaxWidth, cfg.Image.MaxHeight, imaging.Lanczos)
 	size, err := rewriteImage(dst, filename)
 	if err != nil {
@@ -205,7 +207,7 @@ func CreatePhotos(a *model.Album, p *model.Photo) (err error) {
 
 	p.FileSizeHD = size
 	filename = a.PathThumbs() + p.Filename
-	log.Printf("Saving Thumb: %s\n", filename)
+	glog.Infof("Saving Thumb: %s\n", filename)
 	dst = imaging.Thumbnail(dst, cfg.Image.ThumbWidth, cfg.Image.ThumbHeight, imaging.CatmullRom) // resize and crop the image to make a 200x200 thumbnail
 	_, err = rewriteImage(dst, filename)
 
@@ -219,35 +221,42 @@ func Dispatch() {
 	for {
 		select {
 		case si := <-SyncQueue:
-			if !si.FullSync {
-				si, err = NewSyncItemPhoto(si.Filename)
-			}
-
-			if err != nil {
-				log.Println(err)
+			if si.FullSync {
+				syncAlbum(si)
+			} else if si, err = NewSyncItemPhoto(si.Filename); err != nil {
+				glog.Errorln(err)
 			} else {
 				syncAlbum(si)
 			}
 		case ai := <-AlbumQueue:
 			switch {
 			case ai.MetaUpdate:
-				log.Println("Updating Album meta")
+				glog.Infoln("Updating Album meta")
 				if err = updateMeta(ai.AlbumId); err != nil {
-					log.Println(err)
+					glog.Errorln(err)
 				} else {
-					log.Println("Metainfo was updated for albumId", ai.AlbumId)
+					glog.Infof("Metainfo was updated for albumId", ai.AlbumId)
 				}
 			case ai.StatusUpdate:
-				log.Println("Reloading albums")
+				glog.Infoln("Reloading albums")
 				if err = updateAlbums(); err != nil {
-					log.Println(err)
+					glog.Errorln(err)
 				} else {
-					log.Println("Albums were reloaded")
+					glog.Infoln("Albums were reloaded")
 				}
 			}
 		}
 	}
+}
 
+// TODO exit
+func DispatchFsSync() {
+	for {
+		select {
+		case si := <-FsBufferQueue:
+			SyncQueue <- si
+		}
+	}
 }
 
 // Update Albums Meta by Id
