@@ -147,6 +147,7 @@ func AlbumMeta(id int) (MetaInfo, error) {
 	if err != nil {
 		return m, err
 	}
+	defer ds.Close()
 
 	if ds.Next() {
 		var ids string
