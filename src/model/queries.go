@@ -24,7 +24,7 @@ func Open() (err error) {
 	if err != nil {
 		return err
 	}
-	db.SetMaxIdleConns(maxIdleConnections)
+	db.SetMaxOpenConns(maxIdleConnections)
 	return db.Ping()
 }
 
