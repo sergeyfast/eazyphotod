@@ -3,10 +3,10 @@ package eazyphotod
 import (
 	"errors"
 	"fmt"
+	"github.com/golang/glog"
 	"github.com/howeyc/fsnotify"
 	"github.com/sergeyfast/btsync"
 	"model"
-	"github.com/golang/glog"
 )
 
 func pingModel() error {

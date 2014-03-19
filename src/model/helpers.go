@@ -50,12 +50,12 @@ func PushToBtSync(albums AlbumList, client *btsync.Client) ([]string, error) {
 
 		// Generate Secret
 		var s *btsync.Secrets
-		if s, err = client.Secrets("",false); err != nil {
+		if s, err = client.Secrets("", false); err != nil {
 			return watchDirs, err
 		}
 
 		// Add Sources
-		if r, err := client.AddFolder(a.PathSource(), a.ROSecret, 0 ); err != nil || r.Error != 0 || r.Result != 0 {
+		if r, err := client.AddFolder(a.PathSource(), a.ROSecret, 0); err != nil || r.Error != 0 || r.Result != 0 {
 			if err == nil {
 				err = errors.New("Failed to add source sync folder. Error code: " + strconv.Itoa(r.Error) + ". " + r.Message)
 			}
@@ -67,7 +67,7 @@ func PushToBtSync(albums AlbumList, client *btsync.Client) ([]string, error) {
 
 		// Add HD
 		a.ROSecretHD = s.ReadOnly
-		if r, err := client.AddFolder(a.PathHD(), s.ReadWrite, 0 ); err != nil || r.Error != 0 || r.Result != 0 {
+		if r, err := client.AddFolder(a.PathHD(), s.ReadWrite, 0); err != nil || r.Error != 0 || r.Result != 0 {
 			if err == nil {
 				err = errors.New("Failed to add hd sync folder. Error code: " + strconv.Itoa(r.Error) + ". " + r.Message)
 			}

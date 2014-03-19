@@ -4,19 +4,19 @@ import (
 	"model"
 
 	"errors"
+	"github.com/disintegration/imaging"
+	"github.com/golang/glog"
+	"github.com/howeyc/fsnotify"
 	"image"
 	"strconv"
 	"time"
-	"github.com/disintegration/imaging"
-	"github.com/howeyc/fsnotify"
-	"github.com/golang/glog"
 )
 
 var (
-	SyncQueue     = make(chan *SyncItem)      // Main Sync Queue Chan
-	FsBufferQueue = make(chan *SyncItem, 100 )      // Fs Buffer Queue.
-	AlbumQueue    = make(chan *AlbumItem, 100 ) // Status or Meta update for Album
-	Watcher    *fsnotify.Watcher
+	SyncQueue     = make(chan *SyncItem)       // Main Sync Queue Chan
+	FsBufferQueue = make(chan *SyncItem, 100)  // Fs Buffer Queue.
+	AlbumQueue    = make(chan *AlbumItem, 100) // Status or Meta update for Album
+	Watcher       *fsnotify.Watcher
 )
 
 // Album Item

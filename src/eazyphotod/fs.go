@@ -2,6 +2,7 @@ package eazyphotod
 
 import (
 	"github.com/disintegration/imaging"
+	"github.com/golang/glog"
 	"github.com/rwcarlsen/goexif/exif"
 	"image"
 	"io/ioutil"
@@ -9,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/golang/glog"
 )
 
 // exists returns whether the given file or directory exists or not
@@ -117,7 +117,7 @@ func WatcherLoop() {
 			if ev.IsCreate() || ev.IsRename() {
 				//glog.Infoln( "S "+ ev.Name )
 				//time.Sleep(time.Second) // we need this sleep because will be another events after CREATE
-				if checkJpgExt( ev.Name ) {
+				if checkJpgExt(ev.Name) {
 					si := &SyncItem{Filename: ev.Name}
 					si.GoSync()
 				}

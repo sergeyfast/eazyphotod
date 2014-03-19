@@ -6,10 +6,10 @@ import (
 	_ "expvar"
 	"flag"
 	"fmt"
+	"github.com/golang/glog"
 	"github.com/sergeyfast/btsync"
 	"model"
 	"net/http"
-	"github.com/golang/glog"
 )
 
 var (
@@ -82,7 +82,7 @@ func Main() {
 		}
 	}
 
-//	// start goroutines
+	//	// start goroutines
 	go RunFsSync(Albums)
 	go WatcherLoop()
 	go Dispatch()

@@ -3,8 +3,8 @@ package model
 import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
-	"strings"
 	"github.com/golang/glog"
+	"strings"
 )
 
 var (
@@ -12,7 +12,7 @@ var (
 	db               *sql.DB
 )
 
-const maxIdleConnections = 5;
+const maxIdleConnections = 5
 
 func DB() *sql.DB {
 	return db
@@ -24,7 +24,7 @@ func Open() (err error) {
 	if err != nil {
 		return err
 	}
-    db.SetMaxIdleConns( maxIdleConnections )
+	db.SetMaxIdleConns(maxIdleConnections)
 	return db.Ping()
 }
 
@@ -139,7 +139,7 @@ func AlbumMeta(id int) (MetaInfo, error) {
 	var m MetaInfo
 	sql := "SELECT sum(`fileSize`) as fs, sum(`fileSizeHd`) as fh, " +
 		"  count( case when `statusId` = 1 then `photoId` else null end ) as total, " +
-        " GROUP_CONCAT( CASE WHEN statusId = 1 then `photoId` ELSE null END ORDER BY `orderNumber`, `photoDate` ) as ids " +
+		" GROUP_CONCAT( CASE WHEN statusId = 1 then `photoId` ELSE null END ORDER BY `orderNumber`, `photoDate` ) as ids " +
 		" FROM `photos` p " +
 		" WHERE `albumId` = ?"
 
@@ -148,7 +148,7 @@ func AlbumMeta(id int) (MetaInfo, error) {
 		return m, err
 	}
 
-    if ds.Next() {
+	if ds.Next() {
 		var ids string
 		err = ds.Scan(&m.Size, &m.SizeHD, &m.Count, &ids)
 		if err != nil {
