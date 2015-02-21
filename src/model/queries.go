@@ -2,8 +2,8 @@ package model
 
 import (
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
+	_ "github.com/lib/pq"
 	"strings"
 )
 
@@ -20,7 +20,7 @@ func DB() *sql.DB {
 
 // Opens and Ping Database
 func Open() (err error) {
-	db, err = sql.Open("mysql", ConnectionString)
+	db, err = sql.Open("postgres", ConnectionString)
 	if err != nil {
 		return err
 	}
@@ -35,8 +35,8 @@ func Close() error {
 
 // Get All Albums from DB
 func Albums() (result AlbumList, err error) {
-	rows, err := db.Query(`SELECT albumId, alias, folderPath, roSecret, roSecretHD, startDate, statusId
-	    FROM albums where statusId IN (1,4)
+	rows, err := db.Query(`SELECT "albumId", "alias", "folderPath", "roSecret", "roSecretHd", "startDate", "statusId"
+	    FROM "albums" where "statusId" IN (1,4)
 	    `)
 
 	if err != nil {
@@ -62,8 +62,8 @@ func Albums() (result AlbumList, err error) {
 // Get All Photos from DB
 func Photos() (result PhotoList, err error) {
 	rows, err := db.Query(`
-        SELECT photoId, albumId, originalName, filename, statusId
-        FROM photos
+        SELECT "photoId", "albumId", "originalName", "filename", "statusId"
+        FROM "photos"
     `)
 
 	if err != nil {
@@ -87,7 +87,7 @@ func Photos() (result PhotoList, err error) {
 
 // Update Album Meta
 func UpdateMeta(a *Album) error {
-	sql := "UPDATE `albums` set `metaInfo` = ? WHERE `albumId` = ?;"
+	sql := `UPDATE "albums" set "metaInfo" = $1 WHERE "albumId" = $2;`
 	_, err := db.Exec(sql, a.MetaInfo.Json(), a.AlbumId)
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func UpdateMeta(a *Album) error {
 
 // Update Album Status and ROSecretHD
 func UpdateStatus(a *Album) error {
-	sql := "UPDATE `albums` set `statusId` = ?, `roSecretHd` = ? WHERE `albumId` = ?;"
+	sql := `UPDATE "albums" set "statusId" = $1, "roSecretHd" = $2 WHERE "albumId" = $3;`
 	_, err := db.Exec(sql, a.StatusId, a.ROSecretHD, a.AlbumId)
 	if err != nil {
 		return err
@@ -109,9 +109,9 @@ func UpdateStatus(a *Album) error {
 
 // Add Batch Photos
 func AddPhotos(photos PhotoList) error {
-	sql := "INSERT INTO  `photos`" +
-		"(  `albumId`,  `originalName`,  `filename`,  `fileSize`,  `fileSizeHd`,  `exif`,  `createdAt`,  `photoDate`,  `statusId`)" +
-		"VALUE ( ?, ?, ?, ?, ?, ?, ?, ?, 1 );"
+	sql := `INSERT INTO  "photos"` +
+		`(  "albumId",  "originalName",  "filename",  "fileSize",  "fileSizeHd",  "exif",  "createdAt",  "photoDate",  "statusId")` +
+		`VALUE ( $1, $2, $3, $4, $5, $6, $7, $8, $9 );`
 
 	stmtIns, err := db.Prepare(sql) // ? = placeholder
 	if err != nil {
@@ -137,11 +137,10 @@ func AddPhotos(photos PhotoList) error {
 
 func AlbumMeta(id int) (MetaInfo, error) {
 	var m MetaInfo
-	sql := "SELECT sum(`fileSize`) as fs, sum(`fileSizeHd`) as fh, " +
-		"  count( case when `statusId` = 1 then `photoId` else null end ) as total, " +
-		" GROUP_CONCAT( CASE WHEN statusId = 1 then `photoId` ELSE null END ORDER BY `orderNumber`, `photoDate` ) as ids " +
-		" FROM `photos` p " +
-		" WHERE `albumId` = ?"
+	sql := `SELECT sum("fileSize") as fs, sum("fileSizeHd") as fh, count( case when "statusId" = 1 then "photoId" else null end ) as total,
+	string_agg( "photoId"::text, ',' ORDER BY "statusId", "orderNumber", "photoDate" ) as ids
+	FROM "photos" p
+	WHERE "albumId" = $1`
 
 	ds, err := db.Query(sql, id)
 	if err != nil {
@@ -166,7 +165,7 @@ func AlbumMeta(id int) (MetaInfo, error) {
 }
 
 func HasPhotoByName(originalName string, albumId int) (bool, error) {
-	stmt, err := db.Prepare("SELECT `photoId` FROM `photos` WHERE `originalName` = ? and `albumId` = ? ")
+	stmt, err := db.Prepare(`SELECT "photoId" FROM "photos" WHERE "originalName" = $1 and "albumId" = $2 `)
 	if err != nil {
 		return false, err
 	}
@@ -183,7 +182,7 @@ func HasPhotoByName(originalName string, albumId int) (bool, error) {
 
 func (a *Album) MaxFilename() (int, error) {
 	var id int
-	stmt, err := db.Prepare("SELECT max(`filename`) FROM `photos` WHERE `albumId` = ? ")
+	stmt, err := db.Prepare(`SELECT max("filename") FROM "photos" WHERE "albumId" = $1 `)
 	if err != nil {
 		return id, err
 	}

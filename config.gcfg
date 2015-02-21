@@ -11,7 +11,7 @@ User        = admin
 Password    = 123456
 
 [Database]
-ConnectionString = root:root@/eazyphoto?parseTime=true
+ConnectionString = postgres://postgres@localhost/eazyphoto?sslmode=disable
 
 [Image]
 MaxWidth        = 1920	# px
