@@ -111,7 +111,7 @@ func UpdateStatus(a *Album) error {
 func AddPhotos(photos PhotoList) error {
 	sql := `INSERT INTO  "photos"` +
 		`(  "albumId",  "originalName",  "filename",  "fileSize",  "fileSizeHd",  "exif",  "createdAt",  "photoDate",  "statusId")` +
-		`VALUE ( $1, $2, $3, $4, $5, $6, $7, $8, $9 );`
+		`VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 );`
 
 	stmtIns, err := db.Prepare(sql) // ? = placeholder
 	if err != nil {
