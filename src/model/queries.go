@@ -111,7 +111,7 @@ func UpdateStatus(a *Album) error {
 func AddPhotos(photos PhotoList) error {
 	sql := `INSERT INTO  "photos"` +
 		`(  "albumId",  "originalName",  "filename",  "fileSize",  "fileSizeHd",  "exif",  "createdAt",  "photoDate",  "statusId")` +
-		`VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9 );`
+		`VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, 1 ) RETURNING "photoId";`
 
 	stmtIns, err := db.Prepare(sql) // ? = placeholder
 	if err != nil {
@@ -121,14 +121,12 @@ func AddPhotos(photos PhotoList) error {
 
 	var resultErr error
 	for _, p := range photos {
-		r, err := stmtIns.Exec(p.AlbumId, p.OriginalName, p.Filename, p.FileSize, p.FileSizeHD, p.EXIF, p.CreatedAt, p.PhotoDate)
+		var id int
+		err := stmtIns.QueryRow(p.AlbumId, p.OriginalName, p.Filename, p.FileSize, p.FileSizeHD, p.EXIF, p.CreatedAt, p.PhotoDate).Scan(&id)
 		if err != nil {
 			resultErr = err
-		}
-		if id, err := r.LastInsertId(); err == nil {
-			p.PhotoId = int(id)
 		} else {
-			resultErr = err
+			p.PhotoId = id
 		}
 	}
 
